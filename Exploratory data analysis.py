@@ -169,18 +169,20 @@ sampleAxis.legend()
 
 # 3a) Bootstrapping
 
-N = [5,10,30,100] # number of bootstrapped samples
+N = [1,10,30,100] # number of bootstrapped samples
 sampleSize = sampleDF.shape[0]
 confFig, confAx = plt.subplots(2,2, sharey = True)
+sampleResiduals = sampleDF['Y'] - bestFit['Model'](sampleDF['X_Standardised'])
+y_pred = bestFit['Model'](sampleDF['X_Standardised'])
 
 for j,n in zip (range(0,4),N): # iterate through plots, current plot is plot_j
     samples = np.zeros((n, sampleSize)) # each row is a sample of 85 
-    for i in range (0,n):
-        sampleResiduals = np.random.choice(bestFit['Residuals'], size = sampleSize, replace = True)
-        sampleY = sampleDF['Y'] + sampleResiduals
+    for i in range (0,n): # generate all n bootstrap samples
+        bootstrappedResiduals = np.random.choice(sampleResiduals, size = sampleSize, replace = True)
+        sampleY = y_pred + bootstrappedResiduals
         k = bestFit['Order']
         kCoeffs = np.polyfit(sampleDF['X_Standardised'], sampleY, k)
-        kEstFunc = lambda x: sum([kCoeffs[j]*x**(k-j) for j in range(k+1)])
+        kEstFunc = lambda x: sum([kCoeffs[h]*x**(k-h) for h in range(k+1)])
         samples[i] = kEstFunc(sampleDF['X_Standardised'])
 
     # Calculate Confidence Intervals
@@ -195,26 +197,24 @@ for j,n in zip (range(0,4),N): # iterate through plots, current plot is plot_j
     confAx[row,col].scatter(sampleDF['X_Standardised'], sampleDF['Y'], s = 5)
     confAx[row,col].set_xlabel('Standardised Time')
     confAx[row,col].set_ylabel('Wavelength')
-    confAx[row,col].plot(sampleDF['X_Standardised'], predictions, label = f'Model for k = {k}', c = 'red')
-    confAx[row,col].legend()
+    #confAx[row,col].plot(sampleDF['X_Standardised'], predictions, label = f'Model for k = {k}', c = 'red')
+    #confAx[row,col].legend()
 
     # Plot CIs
     confAx[row,col].fill_between(sampleDF['X_Standardised'], quantiles[:,0],quantiles[:,1], alpha = 0.5, label = f'{n} Sample Bootstrapped 95% CI')
-    confAx[row,col].legend()
+    #confAx[row,col].legend()
 
     #Plot Actual Confidence Band
-
-    y_pred = bestFit['Model'](sampleDF['X_Standardised'])
     ssres = ((sampleDF['Y'] - y_pred) ** 2).sum()
+    #dof = n(bestFit['Order']+1)
     n2 = len(sampleDF['Y'])
     SE = np.sqrt(ssres / (n2 - (bestFit['Order']+1)))
     # calculate the 95% confidence intervals
     z_val = stats.norm.ppf(0.975) # for 95% confidence interval
     LB  = y_pred - z_val * SE
     UB = y_pred + z_val * SE
-    print(z_val*SE)
     confAx[row,col].fill_between(sampleDF['X_Standardised'], LB,UB, alpha = 0.5, label = 'True 95% CI')
-    confAx[row,col].legend()
+    #confAx[row,col].legend()
 plt.show()
 
 # %%
