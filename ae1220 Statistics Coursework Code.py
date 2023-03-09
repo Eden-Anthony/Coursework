@@ -214,20 +214,25 @@ for j,n in zip (range(0,4),N): # iterate through plots, current plot is plot_j
     confAx[row,col].scatter(sampleDF['X_Standardised'], sampleDF['Y'], s = 5)
     confAx[row,col].set_xlabel('Standardised Time')
     confAx[row,col].set_ylabel('Wavelength')
+    confAx[row,col].fill_between(sampleDF['X_Standardised'], quantiles[:,0],quantiles[:,1], alpha = 0.5, label = f'{n} Sample Bootstrapped 95% CI')    
 
     # Calculate confidence intervals at each point to form true confidence band
-    confAx[row,col].fill_between(sampleDF['X_Standardised'], quantiles[:,0],quantiles[:,1], alpha = 0.5, label = f'{n} Sample Bootstrapped 95% CI')    
-    n2 = len(sampleDF['Y'])
-    dof = n2 - (k+1)
-    t_val = stats.t.ppf(0.975, dof)
-    mu = np.mean(y_pred)
-    s = np.sqrt(((mu-y_pred)**2).sum()/(dof)) # sample variance instead of population variance
-    se = np.sqrt(np.sum((sampleDF['Y']- y_pred)**2) / dof)
-    lb = y_pred - t_val*(s/np.sqrt(n2))
-    ub = y_pred + t_val*(s/np.sqrt(n2))
+    y = df['Y']
+    x = df['X_Standardised']
+    y_pred_real = bestFit['Model'](x)
+    n2 = len(y)
+    dof = n2 -(k+1)
+    z = stats.norm.ppf(0.975) # t-value for a 95% confidence interval with n-2 degrees of freedom
+    mse = ((y - y_pred_real) ** 2).sum() / (dof)
+    rmse = np.sqrt(mse)
+    x_mean = x.mean()
+    Sxx = ((x - x_mean) ** 2).sum()
+    SE_reg = rmse * np.sqrt(1 + 1/n2 + ((x - x_mean) ** 2) / Sxx)
+    ub = y_pred_real + z * SE_reg
+    lb = y_pred_real - z * SE_reg
 
     # Plot true confidence band
-    confAx[row,col].fill_between(sampleDF['X_Standardised'], lb,ub, alpha = 0.5, label = 'True 95% CI')
+    confAx[row,col].fill_between(x, lb,ub, alpha = 0.5, label = 'True 95% CI')
     confAx[row,col].legend()
 
 plt.show()
