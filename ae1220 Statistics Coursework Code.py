@@ -154,13 +154,20 @@ def bestModel ():
     models.at[bestFitIndex,'Residuals'] = residuals
     order=bestFit['Order']
     
-    #Histogram to check that residuals approximately follow a normal distribution
-    stats.probplot(residuals, dist="norm", plot = residualsAxis)
+    #Q-Q plot to check that residuals approximately follow a normal distribution
+    stats.probplot(residuals, dist='norm', plot = residualsAxis)
     residualsAxis.set_xlabel('Theoretical Quantiles')
     residualsAxis.set_ylabel('Observed Values')
     residualsAxis.set_title(f'Distribution of Residuals at k = {order}')
     residualsAxis.get_lines()[0].set_markersize(1)
     residualsAxis.get_lines()[1].set_alpha(0.5)
+
+    #KDE to confirm normality
+    kdeFig, kdeAx = plt.subplots()
+    residuals.plot.kde(ax = kdeAx, )
+    kdeAx.hist(residuals, bins = 20)
+    kdeAx.set_xlabel('Residual Error')
+    kdeAx.set_title('Kernal Density Estimate of Residual Errors')
 
     plt.legend()
     
